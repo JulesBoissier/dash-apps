@@ -8,8 +8,15 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:  # Define shared environment variables for the entire job
+      DASH_ENTERPRISE_HOST: ${{ secrets.DE_HOST }}
+      DASH_ENTERPRISE_USERNAME: ${{ secrets.DE_USERNAME }}
+      DASH_ENTERPRISE_PASSWORD: ${{ secrets.DE_PASSWORD }}
+      APP_NAME: ${{ secrets.DE_APP_NAME }}
+
     steps:
     - uses: actions/checkout@v4
+
     - name: Set up Python 3.10
       uses: actions/setup-python@v3
       with:
@@ -19,10 +26,7 @@ jobs:
       shell: bash
       run: |
         python -m pip install --upgrade pip
-        # FIX: Removed square brackets from the URL
         pip install de-client --extra-index-url=https://$DASH_ENTERPRISE_HOST/packages
-      env:
-        DASH_ENTERPRISE_HOST: ${{ secrets.DE_HOST }}
 
     - name: Create app if it does not exist
       shell: bash
@@ -32,21 +36,9 @@ jobs:
         if [[ "$exists" == *"App [$APP_NAME] does not exist on [$DASH_ENTERPRISE_HOST]."* ]]; then
           de --no-keyfile apps create -n "$APP_NAME"
         fi
-      env:
-        # FIX: Corrected indentation of the `env` block
-        DASH_ENTERPRISE_HOST: ${{ secrets.DE_HOST }}
-        DASH_ENTERPRISE_USERNAME: ${{ secrets.DE_USERNAME }}
-        DASH_ENTERPRISE_PASSWORD: ${{ secrets.DE_PASSWORD }}
-        APP_NAME: ${{ secrets.DE_APP_NAME }}
 
     - name: Inject code and deploy
       shell: bash
       run: |
-        # FIX: Replaced square brackets with quotes for variables
         de --no-keyfile deploy . --name "$APP_NAME" --message "Deployed commit: $GITHUB_SHA" -y
         de --no-keyfile apps update --name "$APP_NAME"
-      env:
-        DASH_ENTERPRISE_HOST: ${{ secrets.DE_HOST }}
-        DASH_ENTERPRISE_PASSWORD: ${{ secrets.DE_PASSWORD }}
-        DASH_ENTERPRISE_USERNAME: ${{ secrets.DE_USERNAME }}
-        APP_NAME: ${{ secrets.DE_APP_NAME }}
